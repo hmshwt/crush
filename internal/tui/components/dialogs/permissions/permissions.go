@@ -9,8 +9,8 @@ import (
 	"github.com/charmbracelet/bubbles/v2/key"
 	"github.com/charmbracelet/bubbles/v2/viewport"
 	tea "github.com/charmbracelet/bubbletea/v2"
+	"github.com/charmbracelet/crush/internal/agent/tools"
 	"github.com/charmbracelet/crush/internal/fsext"
-	"github.com/charmbracelet/crush/internal/llm/tools"
 	"github.com/charmbracelet/crush/internal/permission"
 	"github.com/charmbracelet/crush/internal/tui/components/core"
 	"github.com/charmbracelet/crush/internal/tui/components/dialogs"
@@ -95,7 +95,7 @@ func (p *permissionDialogCmp) supportsDiffView() bool {
 	return p.permission.ToolName == tools.EditToolName || p.permission.ToolName == tools.WriteToolName || p.permission.ToolName == tools.MultiEditToolName
 }
 
-func (p *permissionDialogCmp) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+func (p *permissionDialogCmp) Update(msg tea.Msg) (util.Model, tea.Cmd) {
 	var cmds []tea.Cmd
 
 	switch msg := msg.(type) {
@@ -698,15 +698,14 @@ func (p *permissionDialogCmp) render() string {
 
 	p.contentViewPort.SetWidth(p.width - 4)
 
-	// Get cached or generate content
-	contentFinal := p.getOrGenerateContent()
-
 	// Always set viewport content (the caching is handled in getOrGenerateContent)
 	const minContentHeight = 9
-	contentHeight := min(
-		max(minContentHeight, p.height-minContentHeight),
-		lipgloss.Height(contentFinal),
-	)
+
+	availableDialogHeight := max(minContentHeight, p.height-minContentHeight)
+	p.contentViewPort.SetHeight(availableDialogHeight)
+	contentFinal := p.getOrGenerateContent()
+	contentHeight := min(availableDialogHeight, lipgloss.Height(contentFinal))
+
 	p.contentViewPort.SetHeight(contentHeight)
 	p.contentViewPort.SetContent(contentFinal)
 

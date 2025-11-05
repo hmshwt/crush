@@ -6,10 +6,10 @@ import (
 	"strings"
 	"time"
 
+	"github.com/charmbracelet/crush/internal/agent"
+	"github.com/charmbracelet/crush/internal/agent/tools"
 	"github.com/charmbracelet/crush/internal/ansiext"
 	"github.com/charmbracelet/crush/internal/fsext"
-	"github.com/charmbracelet/crush/internal/llm/agent"
-	"github.com/charmbracelet/crush/internal/llm/tools"
 	"github.com/charmbracelet/crush/internal/tui/components/core"
 	"github.com/charmbracelet/crush/internal/tui/highlight"
 	"github.com/charmbracelet/crush/internal/tui/styles"
@@ -364,6 +364,17 @@ func (mer multiEditRenderer) Render(v *toolCallCmp) string {
 				Render(fmt.Sprintf("… (%d lines)", len(contentLines)-responseContextHeight))
 			formatted = strings.Join(contentLines[:responseContextHeight], "\n") + "\n" + truncateMessage
 		}
+
+		// Add failed edits warning if any exist
+		if len(meta.EditsFailed) > 0 {
+			noteTag := t.S().Base.Padding(0, 2).Background(t.Info).Foreground(t.White).Render("Note")
+			noteMsg := fmt.Sprintf("%d of %d edits succeeded", meta.EditsApplied, len(params.Edits))
+			note := t.S().Base.
+				Width(v.textWidth() - 2).
+				Render(fmt.Sprintf("%s %s", noteTag, t.S().Muted.Render(noteMsg)))
+			formatted = lipgloss.JoinVertical(lipgloss.Left, formatted, "", note)
+		}
+
 		return formatted
 	})
 }
@@ -725,7 +736,7 @@ func earlyState(header string, v *toolCallCmp) (string, bool) {
 		message = t.S().Base.Foreground(t.FgSubtle).Render("Canceled.")
 	case v.result.ToolCallID == "":
 		if v.permissionRequested && !v.permissionGranted {
-			message = t.S().Base.Foreground(t.FgSubtle).Render("Requesting for permission...")
+			message = t.S().Base.Foreground(t.FgSubtle).Render("Requesting permission...")
 		} else {
 			message = t.S().Base.Foreground(t.FgSubtle).Render("Waiting for tool response...")
 		}
